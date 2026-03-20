@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from src.constants import (
     ADMIN_PASSWORD, ASPECTOS_EVENTO, GENEROS_MUSICALES,
-    SERVICIOS_MESA, NUM_TO_LIKERT, PERSONAS_POR_MESA
+    SERVICIOS_MESA, NUM_TO_LIKERT
 )
 from src.data_handler import cargar_registros, obtener_csv_bytes
 
@@ -36,10 +36,11 @@ def render_admin():
         st.warning("No hay registros aún.")
         return
 
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Resumen General",
         "Evento y Música",
         "Mesas y Servicios",
+        "EDA",
         "Datos Completos",
     ])
 
@@ -50,6 +51,8 @@ def render_admin():
     with tab3:
         _render_mesas(df)
     with tab4:
+        _render_eda(df)
+    with tab5:
         _render_datos(df)
 
 
@@ -65,8 +68,8 @@ def _render_resumen(df):
     with c3:
         st.metric("Mesas", int(df["mesas"].sum()) if "mesas" in df.columns else 0)
     with c4:
-        capacidad = int(df["mesas"].sum()) * PERSONAS_POR_MESA if "mesas" in df.columns else 0
-        st.metric("Capacidad total", capacidad)
+        capacidad = int(df["invitados"].sum()) if "invitados" in df.columns else 0
+        st.metric("Total invitados", capacidad)
 
     col_l, col_r = st.columns(2)
 
@@ -292,7 +295,138 @@ def _render_mesas(df):
         st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Tab 4: Datos Completos ──────────────────────────────────────────────────
+# ── Tab 4: EDA ──────────────────────────────────────────────────────────────
+
+def _render_eda(df):
+    st.markdown("## Análisis Exploratorio de Datos")
+
+    num_cols = df.select_dtypes(include="number").columns.tolist()
+    df_num = df[num_cols].apply(pd.to_numeric, errors="coerce")
+
+    # ── Estadísticas descriptivas ──
+    st.markdown("### Estadísticas Descriptivas")
+    st.dataframe(df_num.describe().round(2), use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Presupuesto vs Carrera ──
+    if {"presupuesto", "carrera"}.issubset(df.columns):
+        st.markdown("### Presupuesto por Carrera")
+        cross = (
+            df.groupby(["carrera", "presupuesto"])
+            .size()
+            .reset_index(name="count")
+        )
+        fig = px.bar(
+            cross, x="carrera", y="count", color="presupuesto",
+            barmode="stack", labels={"carrera": "Carrera", "count": "Registros"},
+        )
+        fig.update_layout(margin=dict(t=10, b=80), height=380, xaxis_tickangle=-30)
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── Lugar preferido ──
+    if "lugar_preferido" in df.columns:
+        st.markdown("### Lugar Preferido")
+        counts = df["lugar_preferido"].value_counts().reset_index()
+        counts.columns = ["Lugar", "Registros"]
+        col_l, col_r = st.columns(2)
+        with col_l:
+            fig = px.pie(counts, values="Registros", names="Lugar", hole=0.4)
+            fig.update_layout(margin=dict(t=10, b=10), height=300)
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            fig = px.bar(counts, x="Lugar", y="Registros", color="Lugar")
+            fig.update_layout(margin=dict(t=10, b=10), height=300, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ── Mes preferido ──
+    if "mes_preferido" in df.columns:
+        st.markdown("### Mes Preferido")
+        counts = df["mes_preferido"].value_counts().reset_index()
+        counts.columns = ["Mes", "Registros"]
+        fig = px.bar(counts, x="Mes", y="Registros", color="Mes",
+                     color_discrete_sequence=px.colors.qualitative.Pastel)
+        fig.update_layout(margin=dict(t=10, b=10), height=300, showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Mesas 12 vs Mesas 10 ──
+    if {"mesas_12", "mesas_10"}.issubset(df.columns):
+        st.markdown("### Mesas: Escenario A (12p) vs Escenario B (10p)")
+        df_mesas = df[["mesas_12", "mesas_10"]].apply(pd.to_numeric, errors="coerce").dropna()
+        df_mesas = df_mesas[df_mesas[["mesas_12", "mesas_10"]].gt(0).any(axis=1)]
+        col_l, col_r = st.columns(2)
+        with col_l:
+            fig = px.histogram(df_mesas, x="mesas_12", nbins=10, title="Escenario A — 12p",
+                               color_discrete_sequence=["#2980b9"])
+            fig.update_layout(margin=dict(t=30, b=10), height=280)
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            fig = px.histogram(df_mesas, x="mesas_10", nbins=10, title="Escenario B — 10p",
+                               color_discrete_sequence=["#27ae60"])
+            fig.update_layout(margin=dict(t=30, b=10), height=280)
+            st.plotly_chart(fig, use_container_width=True)
+
+        if len(df_mesas) > 1:
+            st.markdown("#### Correlación A vs B")
+            fig = px.scatter(df_mesas, x="mesas_12", y="mesas_10",
+                             opacity=0.7,
+                             labels={"mesas_12": "Mesas (12p)", "mesas_10": "Mesas (10p)"})
+            fig.update_layout(margin=dict(t=10, b=10), height=320)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ── Boletos individuales ──
+    if "num_boletos" in df.columns:
+        df_c = df[pd.to_numeric(df["num_boletos"], errors="coerce").gt(0)]
+        if not df_c.empty:
+            st.markdown("### Escenario C — Boletos Individuales")
+            col_l, col_r = st.columns(2)
+            with col_l:
+                fig = px.histogram(df_c, x=pd.to_numeric(df_c["num_boletos"], errors="coerce"),
+                                   nbins=10, color_discrete_sequence=["#e67e22"])
+                fig.update_layout(xaxis_title="Boletos", yaxis_title="Frecuencia",
+                                  margin=dict(t=10, b=10), height=280)
+                st.plotly_chart(fig, use_container_width=True)
+            with col_r:
+                if "asignacion_boletos" in df_c.columns:
+                    counts = df_c["asignacion_boletos"].value_counts().reset_index()
+                    counts.columns = ["Tipo", "Registros"]
+                    fig = px.pie(counts, values="Registros", names="Tipo", hole=0.4)
+                    fig.update_layout(margin=dict(t=10, b=10), height=280)
+                    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+
+    # ── Matriz de correlación ──
+    if len(df_num.columns) > 1:
+        st.markdown("### Matriz de Correlación (variables numéricas)")
+        corr = df_num.corr().round(2)
+        fig = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu_r",
+                        zmin=-1, zmax=1, aspect="auto")
+        fig.update_layout(margin=dict(t=10, b=10), height=max(400, len(corr) * 30))
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ── Boxplots Likert por carrera ──
+    likert_cols = [c for c in ASPECTOS_EVENTO if c in df.columns]
+    if likert_cols and "carrera" in df.columns:
+        st.markdown("### Distribución Likert por Carrera")
+        aspecto = st.selectbox(
+            "Selecciona un aspecto:", [ASPECTOS_EVENTO[c] for c in likert_cols],
+            key="eda_aspecto"
+        )
+        col_key = [k for k, v in ASPECTOS_EVENTO.items() if v == aspecto][0]
+        df_box = df[["carrera", col_key]].copy()
+        df_box[col_key] = pd.to_numeric(df_box[col_key], errors="coerce")
+        fig = px.box(df_box, x="carrera", y=col_key, color="carrera",
+                     labels={"carrera": "Carrera", col_key: "Puntaje (1-5)"},
+                     points="all")
+        fig.update_layout(margin=dict(t=10, b=60), height=380,
+                          xaxis_tickangle=-30, showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+
+# ── Tab 5: Datos Completos ──────────────────────────────────────────────────
 
 def _render_datos(df):
     st.markdown("### Todos los Registros")

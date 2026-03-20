@@ -10,11 +10,13 @@ from src.constants import (
 
 CSV_COLUMNS = (
     ["nombre_completo", "carrera", "matricula", "telefono",
-     "presupuesto", "invitados", "mesas"]
+     "presupuesto", "mesas_12", "mesas_10",
+     "num_boletos", "asignacion_boletos", "compañero_descripcion",
+     "lugar_preferido", "lugar_otro"]
     + list(SERVICIOS_MESA.keys())
     + list(ASPECTOS_EVENTO.keys())
     + list(GENEROS_MUSICALES.keys())
-    + ["alergias", "comentarios", "fecha_registro"]
+    + ["alergias", "mes_preferido", "comentarios", "fecha_registro"]
 )
 
 
@@ -44,9 +46,14 @@ def guardar_registro(datos):
         st.write(f"**Carrera:** {datos.get('carrera')}")
         st.write(f"**Matrícula:** {datos.get('matricula')}")
         st.write(f"**Teléfono:** {datos.get('telefono')}")
-        st.write(f"**Presupuesto:** {datos.get('presupuesto')}")
-        st.write(f"**Invitados:** {datos.get('invitados')}")
-        st.write(f"**Mesas:** {datos.get('mesas')}")
+        st.write(f"**Presupuesto por persona:** {datos.get('presupuesto')}")
+        st.write(f"**Mesas (escenario 12p):** {datos.get('mesas_12')}")
+        st.write(f"**Mesas (escenario 10p):** {datos.get('mesas_10')}")
+        st.write(f"**Boletos individuales:** {datos.get('num_boletos')}")
+        st.write(f"**Acomodo:** {datos.get('asignacion_boletos')}")
+        st.write(f"**Lugar preferido:** {datos.get('lugar_preferido')}")
+        if datos.get("lugar_otro"):
+            st.write(f"**Lugar propuesto:** {datos.get('lugar_otro')}")
         if datos.get("alergias"):
             st.write(f"**Alergias:** {datos['alergias']}")
         if datos.get("comentarios"):

@@ -1,3 +1,5 @@
+name: graduacion
+
 services:
   app:
     build: .
@@ -5,4 +7,13 @@ services:
       - "8501:8501"
     volumes:
       - ./data:/app/data
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token eyJhIjoiMGU0NDc2NGUzN2E0MTE5YmUwZWIxNWMwYzk5MDJkZWMiLCJ0IjoiNzYzODBiMzQtNDI3Yy00ZWE4LWE1NGEtNzNjYzE5ZmNhODAyIiwicyI6Ik5XRTBOMlJrTURNdFpXSXhZeTAwTXpabExUbGpNVGt0TjJFNVpEaGhNVFZsT1dZdyJ9
+    depends_on:
+      - app
     restart: unless-stopped

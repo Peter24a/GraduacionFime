@@ -1,6 +1,6 @@
 import streamlit as st
 from src.constants import (
-    CARRERAS, OPCIONES_PAGO, PERSONAS_POR_MESA,
+    CARRERAS, OPCIONES_PAGO, LUGARES_EVENTO, MESES_PREFERIDOS,
     LIKERT_OPTIONS, ASPECTOS_EVENTO, GENEROS_MUSICALES,
     SERVICIOS_MESA
 )
@@ -34,10 +34,10 @@ def render_informacion_personal():
     nombre_completo = st.text_input(
         "Nombre Completo *", placeholder="Ingresa tu nombre y apellidos"
     )
-    carrera = st.selectbox("Carrera *", CARRERAS)
     matricula = st.text_input(
-        "Número de Cuenta / Matrícula", placeholder="Ej. 2018xxxx"
+        "Número de Cuenta *", placeholder="Ej. 2018xxxx"
     )
+    carrera = st.selectbox("Carrera *", CARRERAS)
     telefono = st.text_input(
         "Teléfono de contacto (WhatsApp)", placeholder="10 dígitos"
     )
@@ -49,35 +49,81 @@ def render_informacion_personal():
     }
 
 
-def render_detalles_evento():
+def render_lugar_evento():
+    """Llamar ANTES del form para habilitar campo 'Otro'."""
+    st.markdown("---")
+    st.markdown("### Lugar del Evento")
+    lugar = st.radio(
+        "¿Cuál sería tu lugar preferido para la graduación?",
+        LUGARES_EVENTO,
+        key="lugar_radio",
+    )
+    lugar_otro = ""
+    if lugar == "Otro":
+        lugar_otro = st.text_input(
+            "¿Qué lugar propones?",
+            placeholder="Nombre del lugar y por qué lo recomiendas",
+            key="lugar_otro_input",
+        )
+    return lugar, lugar_otro
+
+
+def render_detalles_evento(lugar_preferido, lugar_otro, escenario_c):
     st.markdown("---")
     st.markdown("### Detalles de la Fiesta de Graduación")
 
     pago_dispuesto = st.selectbox(
-        "¿Cuánto estás dispuesto a pagar por tu paquete de graduación? (Aproximado)",
+        "¿Cuánto estás dispuesto a pagar por persona? (Aproximado)",
         OPCIONES_PAGO,
     )
 
-    # --- Mesas e invitados ---
-    st.markdown("---")
-    st.markdown("### Mesas e Invitados")
-    st.info(
-        f"Cada mesa tiene capacidad para **{PERSONAS_POR_MESA} personas**. "
-        "Considera esto al calcular cuántas mesas necesitas."
-    )
+    mesas_12, mesas_10 = 0, 0
+    num_boletos, asignacion_boletos, compañero_descripcion = 0, "", ""
 
-    col1, col2 = st.columns(2)
-    with col1:
-        invitados = st.number_input(
-            "¿Cuántas personas llevarás? (contándote a ti)",
-            min_value=1, max_value=100, value=5, step=1,
+    if escenario_c:
+        # --- Escenario C: Boleto individual ---
+        st.markdown("---")
+        st.markdown("### Escenario C — Boleto individual")
+        st.warning(
+            "📋 Deberás comunicarte con el comité organizador para coordinar la asignación."
         )
-    with col2:
-        mesas = st.number_input(
-            f"¿Cuántas mesas necesitarás? ({PERSONAS_POR_MESA} personas c/u)",
+        num_boletos = st.number_input(
+            "¿Cuántos boletos individuales necesitas?",
+            min_value=1, max_value=20, value=1, step=1,
+            key="num_boletos",
+        )
+        asignacion_boletos = st.radio(
+            "¿Cómo prefieres que sea tu acomodo?",
+            ["Aleatorio", "Con alguien específico"],
+            key="asignacion_radio",
+        )
+        compañero_descripcion = st.text_input(
+            "Si elegiste 'Con alguien específico', ¿con quién te gustaría sentarte?",
+            placeholder="Ej. amigos de mi grupo, compañeros de la misma materia, etc.",
+            key="compañero_input",
+        )
+    else:
+        # --- Escenario A: Mesa de 12 personas ---
+        st.markdown("---")
+        st.markdown("### Escenario A — Mesa de 12 personas")
+        st.info("Si las mesas son de **12 personas**, ¿cuántas necesitarías?")
+        mesas_12 = st.number_input(
+            "Número de mesas (12 personas c/u)",
             min_value=1, max_value=10, value=1, step=1,
+            key="mesas_12",
         )
 
+        # --- Escenario B: Mesa de 10 personas ---
+        st.markdown("### Escenario B — Mesa de 10 personas")
+        st.info("Si las mesas son de **10 personas**, ¿cuántas necesitarías?")
+        mesas_10 = st.number_input(
+            "Número de mesas (10 personas c/u)",
+            min_value=1, max_value=10, value=1, step=1,
+            key="mesas_10",
+        )
+
+    # --- Servicios de mesa ---
+    st.markdown("---")
     st.markdown("**¿Qué servicios te gustaría en tu mesa?**")
     servicios_sel = st.multiselect(
         "Selecciona los servicios deseados",
@@ -91,8 +137,13 @@ def render_detalles_evento():
 
     return {
         "presupuesto": pago_dispuesto,
-        "invitados": invitados,
-        "mesas": mesas,
+        "mesas_12": mesas_12,
+        "mesas_10": mesas_10,
+        "num_boletos": num_boletos,
+        "asignacion_boletos": asignacion_boletos,
+        "compañero_descripcion": compañero_descripcion,
+        "lugar_preferido": lugar_preferido,
+        "lugar_otro": lugar_otro,
         **servicios_dict,
     }
 
@@ -126,6 +177,10 @@ def render_likert_musica():
 def render_preferencias():
     st.markdown("---")
     st.markdown("### Preferencias Adicionales")
+    mes_preferido = st.selectbox(
+        "¿En qué mes preferirías que se realizara el evento?",
+        MESES_PREFERIDOS,
+    )
     alergias = st.text_input(
         "Alergias o preferencias de comida (opcional)",
         placeholder="Ej. Vegano, alergia al maní, etc.",
@@ -135,4 +190,4 @@ def render_preferencias():
         placeholder="Tus sugerencias nos ayudan a mejorar el evento...",
     )
     st.markdown("*Los campos marcados con (*) son obligatorios.*")
-    return {"alergias": alergias, "comentarios": comentarios}
+    return {"mes_preferido": mes_preferido, "alergias": alergias, "comentarios": comentarios}

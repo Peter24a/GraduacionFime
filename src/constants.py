@@ -7,13 +7,21 @@ CARRERAS = [
 ]
 
 OPCIONES_PAGO = [
-    "Menos de $500 MXN",
-    "Entre $500 y $1,000 MXN",
+    "Menos de $600 MXN",
+    "Entre $600 y $1,000 MXN",
     "Entre $1,000 y $2,000 MXN",
     "Más de $2,000 MXN"
 ]
 
-PERSONAS_POR_MESA = 12
+LUGARES_EVENTO = ["Edén", "La Cañada", "Las Cañas", "Otro"]
+
+MESES_PREFERIDOS = [
+    "Sin preferencia",
+    "Enero 2027",
+    "Febrero 2027",
+    "Marzo 2027",
+    "Abril 2027",
+]
 
 # --- Escala Likert ---
 LIKERT_OPTIONS = [
