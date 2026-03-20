@@ -205,3 +205,17 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# === Proyecto Graduación FIME ===
+# Datos de registros (contiene info personal)
+data/
+
+# Streamlit
+.streamlit/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
