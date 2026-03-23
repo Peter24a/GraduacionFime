@@ -60,6 +60,20 @@ def guardar_registro(datos):
             st.write(f"**Sugerencias:** {datos['comentarios']}")
 
 
+def ya_registro(matricula="", nombre=""):
+    """Devuelve True si la matrícula o el nombre ya existe en el CSV."""
+    if not os.path.exists(DATA_FILE):
+        return False
+    df = pd.read_csv(DATA_FILE, encoding="utf-8", dtype=str)
+    if matricula:
+        if (df["matricula"].str.strip() == matricula.strip()).any():
+            return True
+    if nombre:
+        if (df["nombre_completo"].str.strip().str.lower() == nombre.strip().lower()).any():
+            return True
+    return False
+
+
 def cargar_registros():
     if not os.path.exists(DATA_FILE):
         return pd.DataFrame(columns=CSV_COLUMNS)

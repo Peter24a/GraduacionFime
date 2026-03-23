@@ -6,12 +6,7 @@ CARRERAS = [
     "Otra"
 ]
 
-OPCIONES_PAGO = [
-    "Menos de $600 MXN",
-    "Entre $600 y $1,000 MXN",
-    "Entre $1,000 y $2,000 MXN",
-    "Más de $2,000 MXN"
-]
+OPCIONES_PAGO = [f"${i} MXN" for i in range(600, 1050, 50)]
 
 LUGARES_EVENTO = ["Edén", "La Cañada", "Las Cañas", "Otro"]
 
@@ -76,7 +71,6 @@ SERVICIOS_MESA = {
 }
 
 # --- General ---
-ADMIN_PASSWORD = "fime2026"
+ADMIN_PASSWORD = "grad2027"
 DATA_DIR = "data"
 DATA_FILE = "data/registros.csv"
-COOKIE_NAME = "fime_registro_completado"

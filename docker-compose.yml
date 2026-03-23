@@ -7,6 +7,8 @@ services:
       - "8501:8501"
     volumes:
       - ./data:/app/data
+      - ./app.py:/app/app.py
+      - ./src:/app/src
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
